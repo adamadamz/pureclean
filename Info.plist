@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 启动屏：使用品牌深空灰（#161924），与首页背景无缝衔接，
+	     消除系统默认空启动屏在深色模式下的「纯黑卡死感」。
+	     其余 Info.plist 键由构建设置 GENERATE_INFOPLIST_FILE 自动生成合并。 -->
+	<!-- 关键：声明支持的语言。不声明时 iOS 认为 App 只支持英文，
+	     给进程分配的首选语言恒为 en，「跟随系统」永远检测成英文。 -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>zh-Hans</string>
+		<string>zh-Hant</string>
+		<string>es</string>
+	</array>
+	<!-- 出口合规：仅使用系统标准加密（HTTPS），豁免申报，免去每次提审的合规问卷 -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+		<key>UIImageName</key>
+		<string>LaunchLogo</string>
+	</dict>
+</dict>
+</plist>

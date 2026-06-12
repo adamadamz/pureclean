@@ -1,0 +1,76 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "B0000000-0000-0000-0000-000000000001",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "zh_Hans",
+    "_storefront" : "CHN"
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "C0000000-0000-0000-0000-000000000001",
+      "localizations" : [
+
+      ],
+      "name" : "PureClean Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "10.00",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "D0000000-0000-0000-0000-000000000001",
+          "introductoryOffer" : {
+            "internalID" : "E0000000-0000-0000-0000-000000000001",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
+            {
+              "description" : "批量清理·深度扫描·自动清理",
+              "displayName" : "PureClean Pro 月度",
+              "locale" : "zh_Hans"
+            },
+            {
+              "description" : "Batch · Deep Scan · Auto Clean",
+              "displayName" : "PureClean Pro Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.ystech.pureclean.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Pro Monthly",
+          "subscriptionGroupID" : "C0000000-0000-0000-0000-000000000001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PureClean 最终原型 V1.1（与实现同步）</title>
+<style>
+  :root {
+    --bg:#161924; --card:#222630; --border:rgba(255,255,255,.06);
+    --accent:#33CC7A; --accent-dim:rgba(51,204,122,.18);
+    --t1:rgba(255,255,255,.92); --t2:rgba(255,255,255,.55);
+    --danger:#FF6B6B; --r:16px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  body{background:#0b0d13;color:var(--t1);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;
+    display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:24px 12px}
+  h1.proto{font-size:15px;font-weight:600;color:var(--t2);margin-bottom:4px}
+  p.proto{font-size:12px;color:rgba(255,255,255,.35);margin-bottom:18px;text-align:center;max-width:640px}
+  .phone{width:390px;height:800px;background:var(--bg);border-radius:48px;border:6px solid #2a2e3a;
+    position:relative;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6);flex-shrink:0}
+  .notch{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:120px;height:26px;
+    background:#0b0d13;border-radius:14px;z-index:50}
+  .screen{position:absolute;inset:0;padding:56px 20px 28px;display:flex;flex-direction:column;
+    opacity:0;pointer-events:none;transition:opacity .25s;overflow-y:auto}
+  .screen.active{opacity:1;pointer-events:auto}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+  .btn-primary{width:100%;padding:16px;border:none;border-radius:var(--r);background:var(--accent);
+    color:#000;font-size:17px;font-weight:600;cursor:pointer;transition:opacity .15s}
+  .btn-primary:active{opacity:.8}
+  .btn-primary:disabled{background:var(--card);color:var(--t2);cursor:default}
+  .btn-text{background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;padding:8px}
+  .caption{font-size:11px;color:var(--t2);text-align:center}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .logo{font-size:22px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .logo svg{width:26px;height:26px}
+  .pro-badge{font-size:10px;font-weight:800;color:var(--accent);background:var(--accent-dim);
+    padding:3px 8px;border-radius:99px;display:none}
+  body.is-pro .pro-badge{display:inline-block}
+  .gear{font-size:18px;color:var(--t2);cursor:pointer;background:none;border:none}
+  .ring-wrap{display:flex;justify-content:center;margin:10px 0 20px}
+  .ring{position:relative;width:180px;height:180px}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+  .ring .big{font-size:26px;font-weight:700}
+  .ring .sub{font-size:12px;color:var(--t2)}
+  .feature{display:flex;gap:14px;align-items:center;margin-bottom:12px}
+  .feature .ico{width:36px;font-size:20px;text-align:center}
+  .feature .tt{font-size:14px;font-weight:600}
+  .feature .ss{font-size:11.5px;color:var(--t2);margin-top:2px}
+  .scan-center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px}
+  .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700}
+  .sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .sec-title{font-size:14px;font-weight:600}
+  .sec-meta{font-size:13px;color:var(--accent)}
+  .note{font-size:11.5px;color:var(--t2)}
+  .hint{font-size:10.5px;color:var(--t2);margin-bottom:8px}
+  .thumb-row{display:flex;gap:8px;overflow-x:auto;padding:4px 0}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .thumb{position:relative;width:96px;height:96px;flex-shrink:0;border-radius:12px;overflow:hidden;cursor:pointer}
+  .grid3 .thumb{width:100%;aspect-ratio:1;height:auto}
+  .thumb .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px}
+  .thumb .chk{position:absolute;top:5px;right:5px;width:24px;height:24px;border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.75);background:rgba(0,0,0,.3);display:flex;align-items:center;
+    justify-content:center;font-size:14px;color:transparent;transition:all .15s}
+  .thumb.sel .chk{background:var(--accent);border-color:var(--accent);color:#000}
+  .thumb.sel::after{content:"";position:absolute;inset:0;border:2px solid var(--accent);border-radius:12px}
+  .thumb.keeper{filter:saturate(.3);opacity:.55;cursor:default}
+  .thumb.keeper .chk{display:none}
+  .thumb.cloud{cursor:default}
+  .thumb.cloud .chk{display:none}
+  .keep-tag{position:absolute;top:5px;right:5px;font-size:10px;font-weight:800;background:var(--accent);
+    color:#000;padding:3px 7px;border-radius:99px}
+  .dur-tag{position:absolute;bottom:5px;left:5px;font-size:9px;background:rgba(0,0,0,.55);
+    padding:2px 5px;border-radius:6px;color:#fff}
+  .group-meta{display:flex;justify-content:space-between;font-size:11.5px;color:var(--t2);margin:8px 0 4px}
+  .group-meta b{color:var(--accent);font-weight:600}
+  .bottom-bar{position:sticky;bottom:0;margin:12px -20px -28px;padding:12px 20px 26px;
+    background:linear-gradient(transparent,var(--bg) 24%)}
+  .back{background:none;border:none;color:var(--t2);font-size:14px;cursor:pointer}
+  .result-center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}
+  .check-big{width:84px;height:84px;border-radius:50%;background:var(--accent-dim);display:flex;
+    align-items:center;justify-content:center;font-size:42px;color:var(--accent);
+    animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes pop{from{transform:scale(.3);opacity:0}}
+  .spinner{width:38px;height:38px;border-radius:50%;border:3.5px solid var(--card);
+    border-top-color:var(--accent);animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  /* 弹层 */
+  .sheet-mask{position:absolute;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;
+    transition:opacity .25s;z-index:60}
+  .sheet-mask.open{opacity:1;pointer-events:auto}
+  .sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;background:var(--bg);
+    border-radius:24px 24px 0 0;padding:14px 20px 30px;transform:translateY(105%);
+    transition:transform .3s cubic-bezier(.3,1,.3,1);z-index:61;overflow-y:auto;border-top:1px solid var(--border)}
+  .sheet.open{transform:translateY(0)}
+  .grabber{width:40px;height:5px;border-radius:99px;background:var(--card);margin:0 auto 16px}
+  .benefit{display:flex;gap:12px;align-items:center;padding:8px 0;font-size:14px}
+  .benefit .ico{width:26px;text-align:center}
+  .lang-row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;
+    border-bottom:1px solid var(--border);font-size:14px;cursor:pointer}
+  .lang-row .tick{color:var(--accent)}
+  .switch{position:relative;width:46px;height:28px;border-radius:99px;background:var(--card);
+    cursor:pointer;transition:background .2s;border:1px solid var(--border)}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:22px;height:22px;
+    border-radius:50%;background:#fff;transition:left .2s}
+  .switch.on{background:var(--accent)}
+  .switch.on::after{left:20px}
+  /* iOS 风格系统弹窗 */
+  .ios-alert-mask{position:absolute;inset:0;background:rgba(0,0,0,.45);display:none;
+    align-items:center;justify-content:center;z-index:80}
+  .ios-alert-mask.open{display:flex}
+  .ios-alert{width:272px;background:rgba(38,42,54,.97);border-radius:14px;overflow:hidden;
+    backdrop-filter:blur(20px);text-align:center;animation:pop .25s}
+  .ios-alert .ti{font-size:16px;font-weight:600;padding:18px 16px 6px}
+  .ios-alert .msg{font-size:12.5px;color:var(--t2);padding:0 16px 16px;line-height:1.5}
+  .ios-alert .btns{display:flex;border-top:.5px solid rgba(255,255,255,.15)}
+  .ios-alert .btns button{flex:1;padding:12px;background:none;border:none;font-size:16px;cursor:pointer}
+  .ios-alert .btns button + button{border-left:.5px solid rgba(255,255,255,.15)}
+  .b-red{color:var(--danger);font-weight:600}
+  .b-blue{color:#4da3ff}
+  /* 大图查看器 */
+  .viewer{position:absolute;inset:0;background:#000;z-index:70;display:none;flex-direction:column}
+  .viewer.open{display:flex}
+  .viewer .stage{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:grab}
+  .viewer .pic{font-size:160px;transition:transform .18s;will-change:transform}
+  .viewer .close{position:absolute;top:52px;right:16px;font-size:28px;color:rgba(255,255,255,.85);
+    background:none;border:none;cursor:pointer;z-index:2}
+  .viewer .foot{padding:0 20px 26px;display:flex;flex-direction:column;gap:10px;align-items:center}
+  .viewer .vbtn{width:100%;padding:15px;border-radius:var(--r);border:none;font-size:16px;
+    font-weight:600;cursor:pointer}
+  .hd-btn{background:rgba(255,255,255,.12);color:var(--accent);border:none;border-radius:99px;
+    padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer}
+  .progress{width:180px;height:4px;border-radius:99px;background:var(--card);overflow:hidden}
+  .progress i{display:block;height:100%;background:var(--accent);width:0%;transition:width .2s}
+  .toast{position:absolute;top:64px;left:50%;transform:translateX(-50%);background:#2c313e;
+    padding:10px 18px;border-radius:99px;font-size:13px;opacity:0;transition:all .3s;z-index:90;
+    white-space:nowrap;border:1px solid var(--border)}
+  .toast.show{opacity:1}
+  @media (max-width:430px){.phone{width:100%;height:88vh;border-radius:36px}}
+</style>
+</head>
+<body>
+  <h1 class="proto">PureClean · 最终原型 V1.1（与 App 实现 1:1 同步）</h1>
+  <p class="proto">订阅门控：识别+手动勾选免费 ｜ 批量（默认勾选/全选/深扫/自动清理）= Pro，在「想一键清理」时触发 Paywall<br>
+  交互：轻点勾选 · 长按看大图（双击缩放/拖移/iCloud 载入高清）· 保留项置灰锁定 · 单次确认</p>
+
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="toast" id="toast"></div>
+
+    <!-- P1 首页 -->
+    <div class="screen active" id="s-home">
+      <div class="topbar">
+        <span class="logo">
+          <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="34" stroke="#33CC7A" stroke-width="9" fill="none" stroke-dasharray="150 64" stroke-linecap="round" transform="rotate(-60 50 50)"/><path d="M76 30 Q79 39 88 42 Q79 45 76 54 Q73 45 64 42 Q73 39 76 30Z" fill="#7FF0B2"/></svg>
+          PureClean <span class="pro-badge">PRO</span></span>
+        <button class="gear" onclick="openSheet('settings')">⚙︎</button>
+      </div>
+      <div class="ring-wrap"><div class="ring">
+        <svg width="180" height="180" viewBox="0 0 180 180">
+          <circle cx="90" cy="90" r="80" fill="none" stroke="var(--card)" stroke-width="14"/>
+          <circle cx="90" cy="90" r="80" fill="none" stroke="var(--accent)" stroke-width="14"
+            stroke-linecap="round" stroke-dasharray="502.65" stroke-dashoffset="135.7"/>
+        </svg>
+        <div class="label"><div class="big">93.4 GB</div><div class="sub" data-i="home.used"></div></div>
+      </div></div>
+      <div class="card feature"><div class="ico">💾</div><div><div class="tt" data-i="home.cache"></div><div class="ss" data-i="home.cache.sub"></div></div></div>
+      <div class="card feature"><div class="ico">🗑️</div><div><div class="tt" data-i="home.junk"></div><div class="ss" data-i="home.junk.sub"></div></div></div>
+      <div class="card feature"><div class="ico">🖼️</div><div><div class="tt" data-i="home.photos"></div><div class="ss" data-i="home.photos.sub"></div></div></div>
+      <div style="flex:1"></div>
+      <p class="caption" style="margin-bottom:12px" data-i="home.privacy"></p>
+      <button class="btn-primary" onclick="startScan()" data-i="home.scan"></button>
+      <button class="btn-text" id="upgradeEntry" onclick="openSheet('paywall')" data-i="home.upgrade"></button>
+    </div>
+
+    <!-- P2 扫描中 -->
+    <div class="screen" id="s-scan"><div class="scan-center">
+      <div class="ring" style="width:160px;height:160px">
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <circle cx="80" cy="80" r="70" fill="none" stroke="var(--card)" stroke-width="10"/>
+          <circle id="scanRing" cx="80" cy="80" r="70" fill="none" stroke="var(--accent)" stroke-width="10"
+            stroke-linecap="round" stroke-dasharray="439.8" stroke-dashoffset="439.8"/>
+        </svg><div class="pct" id="scanPct">0%</div>
+      </div>
+      <div style="color:var(--t2);font-size:15px" data-i="scan.running"></div>
+      <div style="color:var(--accent);font-size:12px" data-i="scan.local"></div>
+    </div></div>
+
+    <!-- P3 预览 -->
+    <div class="screen" id="s-preview">
+      <div class="topbar">
+        <button class="back" onclick="goHome()" data-i="common.back"></button>
+        <span style="font-size:16px;font-weight:600" data-i="preview.title"></span>
+        <span style="width:32px"></span>
+      </div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="sec-head"><span class="sec-title" data-i="preview.junk"></span><span class="sec-meta">128 MB</span></div>
+        <div class="note" data-i="preview.junk.note"></div>
+      </div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="sec-head">
+          <span class="sec-title" data-i="preview.duplicates"></span>
+          <button class="btn-text" style="padding:0;font-size:12px;font-weight:600" onclick="selectAllToggle()" id="selAllBtn"></button>
+        </div>
+        <div class="hint" data-i="preview.hint"></div>
+        <div id="dupGroups"></div>
+        <div class="hint" id="icloudNote" style="margin-top:6px">☁️ <span></span></div>
+        <button class="btn-text" style="padding:6px 0 0;font-size:12px" onclick="openSheet('paywall')" id="deepHint" data-i="preview.deepHint"></button>
+      </div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="sec-head"><span class="sec-title" data-i="preview.screenshots"></span><span class="sec-meta" style="color:var(--t2)" id="shotCount"></span></div>
+        <div class="grid3" id="shotGrid"></div>
+      </div>
+      <div class="card">
+        <div class="sec-head"><span class="sec-title" data-i="preview.largeVideos"></span><span class="sec-meta" style="color:var(--t2)">1</span></div>
+        <div class="grid3" id="videoGrid"></div>
+      </div>
+      <div class="bottom-bar">
+        <p class="caption" style="margin-bottom:8px" data-i="preview.recoverNote"></p>
+        <button class="btn-primary" id="cleanBtn" onclick="tryClean()"></button>
+      </div>
+    </div>
+
+    <!-- P4/P5 清理中/完成 -->
+    <div class="screen" id="s-cleaning"><div class="result-center">
+      <div class="spinner"></div><div style="color:var(--t2)" data-i="clean.running"></div>
+    </div></div>
+    <div class="screen" id="s-done">
+      <div class="result-center">
+        <div class="check-big">✓</div>
+        <div style="font-size:22px;font-weight:700" data-i="result.title"></div>
+        <div style="color:var(--t2)" id="freedTxt"></div>
+        <p class="caption" data-i="result.recover"></p>
+      </div>
+      <button class="btn-primary" onclick="goHome()" data-i="common.done"></button>
+    </div>
+
+    <!-- 大图查看器（长按缩略图进入） -->
+    <div class="viewer" id="viewer">
+      <button class="close" onclick="closeViewer()">✕</button>
+      <div class="stage" id="vStage"><div class="pic" id="vPic">🌅</div></div>
+      <div class="foot" id="vFoot"></div>
+    </div>
+
+    <!-- 弹层 -->
+    <div class="sheet-mask" id="mask" onclick="closeSheets()"></div>
+
+    <!-- Paywall -->
+    <div class="sheet" id="sheet-paywall">
+      <div class="grabber"></div>
+      <div style="text-align:center;font-size:34px">✨</div>
+      <div style="text-align:center;font-size:21px;font-weight:700;margin:8px 0 16px">PureClean Pro</div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="benefit"><span class="ico">🗂️</span><span data-i="paywall.batch"></span></div>
+        <div class="benefit"><span class="ico">🔍</span><span data-i="paywall.deep"></span></div>
+        <div class="benefit"><span class="ico">🔄</span><span data-i="paywall.auto"></span></div>
+      </div>
+      <p style="text-align:center;color:var(--accent);font-size:13px;margin-bottom:12px" data-i="paywall.trialDays3"></p>
+      <button class="btn-primary" onclick="subscribe()" data-i="paywall.subscribe10"></button>
+      <div style="text-align:center;margin-top:6px">
+        <button class="btn-text" style="color:var(--t2);font-size:12px" onclick="showToast(t('restore.none'))" data-i="paywall.restore"></button>
+      </div>
+      <p class="caption" data-i="paywall.terms"></p>
+      <p class="caption" style="margin-top:6px"><u data-i="paywall.links.terms"></u> &nbsp; <u data-i="paywall.links.privacy"></u></p>
+    </div>
+
+    <!-- 设置 -->
+    <div class="sheet" id="sheet-settings">
+      <div class="grabber"></div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:14px" data-i="settings.title"></div>
+      <div style="font-size:12px;color:var(--t2);margin-bottom:6px" data-i="settings.language"></div>
+      <div class="card" style="padding:2px 16px;margin-bottom:16px" id="langList"></div>
+      <div style="font-size:12px;color:var(--t2);margin-bottom:6px" data-i="settings.pro"></div>
+      <div class="card" style="margin-bottom:16px">
+        <div style="font-size:13px;padding-bottom:10px;border-bottom:1px solid var(--border)" id="subStatus"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:14px" data-i="settings.autoClean"></span>
+          <div class="switch" id="autoSwitch" onclick="toggleAuto()"></div>
+        </div>
+        <div style="padding-top:10px"><button class="btn-text" style="padding:0;font-size:14px" id="manageBtn" onclick="manageSub()"></button></div>
+      </div>
+      <div style="font-size:12px;color:var(--t2);margin-bottom:6px" data-i="settings.privacy"></div>
+      <div class="card">
+        <div class="lang-row" style="border:none" onclick="openSheet('privacy')">
+          <span data-i="settings.privacy.view"></span><span style="color:var(--t2)">›</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 隐私声明弹窗 -->
+    <div class="sheet" id="sheet-privacy">
+      <div class="grabber"></div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:14px" data-i="settings.privacy.view"></div>
+      <p style="font-size:13.5px;line-height:1.7;color:var(--t1)" data-i="settings.privacy.body"></p>
+      <button class="btn-primary" style="margin-top:18px" onclick="closeSheets()" data-i="common.done"></button>
+    </div>
+
+    <!-- iOS 系统删除确认（含照片时唯一确认；Apple 强制） -->
+    <div class="ios-alert-mask" id="sysAlert"><div class="ios-alert">
+      <div class="ti" id="sysTi"></div>
+      <div class="msg" data-i="sys.deleteMsg"></div>
+      <div class="btns">
+        <button class="b-blue" onclick="hideSys()" data-i="sys.dontAllow"></button>
+        <button class="b-red" onclick="confirmSysDelete()" data-i="sys.delete"></button>
+      </div>
+    </div></div>
+    <!-- 自家确认（仅清缓存、系统不弹框时） -->
+    <div class="ios-alert-mask" id="ownAlert"><div class="ios-alert">
+      <div class="ti" data-i="confirm.title"></div>
+      <div class="msg" id="ownMsg"></div>
+      <div class="btns">
+        <button class="b-blue" onclick="hideOwn()" data-i="common.cancel"></button>
+        <button class="b-red" onclick="confirmOwnClean()" data-i="confirm.ok"></button>
+      </div>
+    </div></div>
+  </div>
+
+<script>
+/* ============ 多语言（与 App 的 Resources/*.json 同源） ============ */
+const I18N = {
+ "zh-Hans":{"home.used":"已用 / 共 128 GB","home.cache":"缓存清理","home.cache.sub":"清理本应用缓存与临时文件","home.junk":"垃圾文件扫描","home.junk.sub":"扫描沙盒内可安全删除的文件","home.photos":"重复照片","home.photos.sub":"本地识别重复 / 截图 / 大视频","home.privacy":"绝不上传任何数据 · 零收集 · 无广告 · 无推送","home.scan":"开始扫描","home.upgrade":"升级 Pro：批量 · 深度 · 自动清理","scan.running":"正在本机扫描…","scan.local":"所有数据不会离开您的手机","preview.title":"扫描结果","preview.junk":"应用缓存与临时文件","preview.junk.note":"已默认全选，删除后应用会按需重建，绝不影响您的数据。","preview.duplicates":"重复照片","preview.selectAll":"全选冗余项","preview.deselectAll":"取消勾选","preview.selectAll.pro":"全选（Pro）","preview.deepHint":"升级 Pro 开启深度扫描，识别相似连拍照片","preview.hint":"轻点勾选 · 长按查看大图 ｜ 每组置灰的最高清一张强制保留","preview.dupGroup":"{0} 张完全重复","preview.similarGroup":"{0} 张相似","preview.keep":"保留","preview.screenshots":"截图","preview.largeVideos":"大视频（≥100MB）","preview.icloudSkipped":"{0} 张照片仅存于 iCloud，未参与本地识别","preview.recoverNote":"删除的照片将进入「最近删除」，30 天内可恢复","preview.clean":"一键清理 {0}","clean.running":"正在清理…","result.title":"清理完成","result.freed":"已释放约 {0} 空间","result.recover":"如有误删，可在「照片 → 最近删除」中恢复","common.back":"返回","common.done":"完成","common.cancel":"取消","paywall.batch":"批量清理：默认勾选 + 一键全选所有冗余照片","paywall.deep":"深度扫描：识别相似连拍与微调照片","paywall.auto":"自动清理：启动即扫描，省去手动操作","paywall.trialDays3":"3 天免费试用，随时可取消","paywall.subscribe10":"订阅 ¥10.00 / 月","paywall.restore":"恢复购买","paywall.terms":"订阅自动续期，可随时在 App Store 设置中取消。试用期结束前取消不收费。","paywall.links.terms":"用户协议","paywall.links.privacy":"隐私政策","restore.none":"未找到可恢复的购买记录","settings.title":"设置","settings.language":"语言","settings.language.system":"跟随系统","settings.pro":"Pro 功能","settings.autoClean":"启动时自动扫描","settings.manage":"管理订阅","settings.upgrade":"升级 PureClean Pro","settings.status.active":"✓ Pro 已订阅 · 将于 7 月 10 日自动续期","settings.status.free":"免费版","settings.privacy":"隐私","settings.privacy.view":"隐私声明","settings.privacy.body":"PureClean 绝不上传任何数据：扫描与清理 100% 在本机完成，无服务器、无广告、无推送、无统计 SDK，隐私清单为「零收集」。唯一可选的联网动作：查看大图时您可手动从自己的 iCloud 载入该张原图（仅下载、绝不上传）。","confirm.title":"确认清理？","confirm.message":"将删除所选 {0} 项，释放约 {1}。","confirm.ok":"确认清理","sys.deleteTitle":"要删除这 {0} 张照片吗？","sys.deleteMsg":"这些照片将被放入「最近删除」，30 天内可恢复。（iOS 系统弹窗，Apple 强制且批量仅弹一次）","sys.delete":"删除","sys.dontAllow":"不允许","viewer.select":"勾选删除","viewer.deselect":"取消勾选","viewer.loadHD":"☁️ 载入高清（iCloud）","viewer.downloading":"正在从您的 iCloud 载入…","viewer.zoomHint":"双击缩放 · 放大后可拖移","keeperGuard":"每组必须保留一张（已拦截）"},
+ "zh-Hant":{"home.used":"已用 / 共 128 GB","home.cache":"快取清理","home.cache.sub":"清理本應用快取與暫存檔案","home.junk":"垃圾檔案掃描","home.junk.sub":"掃描沙盒內可安全刪除的檔案","home.photos":"重複照片","home.photos.sub":"本機識別重複 / 截圖 / 大型影片","home.privacy":"絕不上傳任何資料 · 零收集 · 無廣告 · 無推播","home.scan":"開始掃描","home.upgrade":"升級 Pro：批次 · 深度 · 自動清理","scan.running":"正在本機掃描…","scan.local":"所有資料不會離開您的手機","preview.title":"掃描結果","preview.junk":"應用快取與暫存檔案","preview.junk.note":"已預設全選，刪除後應用會按需重建，絕不影響您的資料。","preview.duplicates":"重複照片","preview.selectAll":"全選冗餘項","preview.deselectAll":"取消勾選","preview.selectAll.pro":"全選（Pro）","preview.deepHint":"升級 Pro 開啟深度掃描，識別相似連拍照片","preview.hint":"輕點勾選 · 長按查看大圖 ｜ 每組置灰的最高清一張強制保留","preview.dupGroup":"{0} 張完全重複","preview.similarGroup":"{0} 張相似","preview.keep":"保留","preview.screenshots":"截圖","preview.largeVideos":"大型影片（≥100MB）","preview.icloudSkipped":"{0} 張照片僅存於 iCloud，未參與本機識別","preview.recoverNote":"刪除的照片將進入「最近刪除」，30 天內可恢復","preview.clean":"一鍵清理 {0}","clean.running":"正在清理…","result.title":"清理完成","result.freed":"已釋放約 {0} 空間","result.recover":"如有誤刪，可在「照片 → 最近刪除」中恢復","common.back":"返回","common.done":"完成","common.cancel":"取消","paywall.batch":"批次清理：預設勾選 + 一鍵全選所有冗餘照片","paywall.deep":"深度掃描：識別相似連拍與微調照片","paywall.auto":"自動清理：啟動即掃描，省去手動操作","paywall.trialDays3":"3 天免費試用，隨時可取消","paywall.subscribe10":"訂閱 ¥10.00 / 月","paywall.restore":"恢復購買","paywall.terms":"訂閱自動續期，可隨時在 App Store 設定中取消。試用期結束前取消不收費。","paywall.links.terms":"使用者協議","paywall.links.privacy":"隱私政策","restore.none":"未找到可恢復的購買記錄","settings.title":"設定","settings.language":"語言","settings.language.system":"跟隨系統","settings.pro":"Pro 功能","settings.autoClean":"啟動時自動掃描","settings.manage":"管理訂閱","settings.upgrade":"升級 PureClean Pro","settings.status.active":"✓ Pro 已訂閱 · 將於 7 月 10 日自動續期","settings.status.free":"免費版","settings.privacy":"隱私","settings.privacy.view":"隱私聲明","settings.privacy.body":"PureClean 絕不上傳任何資料：掃描與清理 100% 在本機完成，無伺服器、無廣告、無推播、無統計 SDK，隱私清單為「零收集」。唯一可選的連網動作：查看大圖時您可手動從自己的 iCloud 載入該張原圖（僅下載、絕不上傳）。","confirm.title":"確認清理？","confirm.message":"將刪除所選 {0} 項，釋放約 {1}。","confirm.ok":"確認清理","sys.deleteTitle":"要刪除這 {0} 張照片嗎？","sys.deleteMsg":"這些照片將被放入「最近刪除」，30 天內可恢復。（iOS 系統彈窗，Apple 強制且批次僅彈一次）","sys.delete":"刪除","sys.dontAllow":"不允許","viewer.select":"勾選刪除","viewer.deselect":"取消勾選","viewer.loadHD":"☁️ 載入高清（iCloud）","viewer.downloading":"正在從您的 iCloud 載入…","viewer.zoomHint":"雙擊縮放 · 放大後可拖移","keeperGuard":"每組必須保留一張（已攔截）"},
+ "en":{"home.used":"used of 128 GB","home.cache":"Cache Cleanup","home.cache.sub":"Clear this app's cache and temp files","home.junk":"Junk File Scan","home.junk.sub":"Find safely deletable files in the sandbox","home.photos":"Duplicate Photos","home.photos.sub":"Find duplicates, screenshots & large videos on-device","home.privacy":"Never uploads anything · Zero collection · No ads · No push","home.scan":"Start Scan","home.upgrade":"Go Pro: Batch · Deep Scan · Auto Clean","scan.running":"Scanning on-device…","scan.local":"Nothing ever leaves your phone","preview.title":"Scan Results","preview.junk":"App cache & temp files","preview.junk.note":"Selected by default. Caches rebuild as needed — your data is never touched.","preview.duplicates":"Duplicate Photos","preview.selectAll":"Select all redundant","preview.deselectAll":"Deselect all","preview.selectAll.pro":"Select all (Pro)","preview.deepHint":"Go Pro to enable Deep Scan for similar burst photos","preview.hint":"Tap to select · Long-press to preview | The greyed sharpest one per group is always kept","preview.dupGroup":"{0} exact duplicates","preview.similarGroup":"{0} similar","preview.keep":"KEEP","preview.screenshots":"Screenshots","preview.largeVideos":"Large Videos (≥100MB)","preview.icloudSkipped":"{0} photos live only in iCloud and were skipped","preview.recoverNote":"Deleted photos go to Recently Deleted, restorable for 30 days","preview.clean":"Clean {0} Now","clean.running":"Cleaning…","result.title":"All Clean","result.freed":"About {0} freed","result.recover":"Deleted by mistake? Restore from Photos → Recently Deleted","common.back":"Back","common.done":"Done","common.cancel":"Cancel","paywall.batch":"Batch: auto-select + select all redundant at once","paywall.deep":"Deep scan: detect similar bursts and near-duplicates","paywall.auto":"Auto clean: scan automatically on launch","paywall.trialDays3":"3-day free trial, cancel anytime","paywall.subscribe10":"Subscribe $1.49 / month","paywall.restore":"Restore Purchases","paywall.terms":"Auto-renewing. Cancel anytime in App Store settings. No charge if cancelled before trial ends.","paywall.links.terms":"Terms of Use","paywall.links.privacy":"Privacy Policy","restore.none":"No purchases found to restore","settings.title":"Settings","settings.language":"Language","settings.language.system":"Follow System","settings.pro":"Pro Features","settings.autoClean":"Auto scan on launch","settings.manage":"Manage Subscription","settings.upgrade":"Upgrade to PureClean Pro","settings.status.active":"✓ Pro Active · Renews Jul 10","settings.status.free":"Free plan","settings.privacy":"Privacy","settings.privacy.view":"Privacy Statement","settings.privacy.body":"PureClean never uploads anything: scanning and cleaning run 100% on-device — no servers, no ads, no push, no analytics SDKs, zero-collection privacy manifest. The only optional network action: while previewing, you can manually load that one photo from your own iCloud (download only, never upload).","confirm.title":"Confirm Cleanup?","confirm.message":"{0} selected items will be deleted, freeing about {1}.","confirm.ok":"Clean Now","sys.deleteTitle":"Delete these {0} photos?","sys.deleteMsg":"They will be moved to Recently Deleted, restorable for 30 days. (iOS system dialog — Apple-mandated, shown once per batch)","sys.delete":"Delete","sys.dontAllow":"Don't Allow","viewer.select":"Select for deletion","viewer.deselect":"Deselect","viewer.loadHD":"☁️ Load HD (iCloud)","viewer.downloading":"Loading from your iCloud…","viewer.zoomHint":"Double-tap to zoom · drag to pan","keeperGuard":"One photo must remain per group (blocked)"},
+ "es":{"home.used":"usado de 128 GB","home.cache":"Limpieza de caché","home.cache.sub":"Borra la caché y archivos temporales de esta app","home.junk":"Escaneo de archivos basura","home.junk.sub":"Encuentra archivos eliminables de forma segura","home.photos":"Fotos duplicadas","home.photos.sub":"Detecta duplicados, capturas y vídeos grandes","home.privacy":"Nunca sube nada · Cero recopilación · Sin anuncios · Sin push","home.scan":"Iniciar escaneo","home.upgrade":"Hazte Pro: Lote · Profundo · Auto-limpieza","scan.running":"Escaneando en el dispositivo…","scan.local":"Nada sale jamás de tu teléfono","preview.title":"Resultados","preview.junk":"Caché y archivos temporales","preview.junk.note":"Seleccionado por defecto. La caché se regenera; tus datos nunca se tocan.","preview.duplicates":"Fotos duplicadas","preview.selectAll":"Seleccionar redundantes","preview.deselectAll":"Desmarcar todo","preview.selectAll.pro":"Seleccionar todo (Pro)","preview.deepHint":"Hazte Pro para detectar fotos similares en ráfaga","preview.hint":"Toca para marcar · Mantén pulsado para ver | La más nítida (gris) siempre se conserva","preview.dupGroup":"{0} duplicados exactos","preview.similarGroup":"{0} similares","preview.keep":"GUARDAR","preview.screenshots":"Capturas","preview.largeVideos":"Vídeos grandes (≥100MB)","preview.icloudSkipped":"{0} fotos están solo en iCloud y se omitieron","preview.recoverNote":"Las fotos eliminadas van a «Eliminado», recuperables 30 días","preview.clean":"Limpiar {0} ahora","clean.running":"Limpiando…","result.title":"Todo limpio","result.freed":"Aproximadamente {0} liberados","result.recover":"¿Borraste algo? Recupéralo en Fotos → Eliminado","common.back":"Atrás","common.done":"Listo","common.cancel":"Cancelar","paywall.batch":"Lote: auto-selección + seleccionar todo de una vez","paywall.deep":"Escaneo profundo: ráfagas y casi-duplicados","paywall.auto":"Auto-limpieza: escanea al abrir","paywall.trialDays3":"Prueba gratis de 3 días, cancela cuando quieras","paywall.subscribe10":"Suscribirse $1.49 / mes","paywall.restore":"Restaurar compras","paywall.terms":"Auto-renovable. Cancela en el App Store. Sin cargo si cancelas antes de la prueba.","paywall.links.terms":"Términos de uso","paywall.links.privacy":"Política de privacidad","restore.none":"No se encontraron compras","settings.title":"Ajustes","settings.language":"Idioma","settings.language.system":"Seguir el sistema","settings.pro":"Funciones Pro","settings.autoClean":"Escanear al abrir","settings.manage":"Gestionar suscripción","settings.upgrade":"Mejorar a PureClean Pro","settings.status.active":"✓ Pro activo · Se renueva el 10 jul","settings.status.free":"Plan gratuito","settings.privacy":"Privacidad","settings.privacy.view":"Declaración de privacidad","settings.privacy.body":"PureClean nunca sube nada: el escaneo y la limpieza son 100% locales — sin servidores, sin anuncios, sin push, sin SDKs de análisis, manifiesto de cero recopilación. Única acción de red opcional: al previsualizar puedes cargar manualmente esa foto desde tu propio iCloud (solo descarga, nunca subida).","confirm.title":"¿Confirmar limpieza?","confirm.message":"Se eliminarán {0} elementos, liberando unos {1}.","confirm.ok":"Limpiar ahora","sys.deleteTitle":"¿Eliminar estas {0} fotos?","sys.deleteMsg":"Irán a «Eliminado», recuperables 30 días. (Diálogo del sistema iOS — obligatorio, una vez por lote)","sys.delete":"Eliminar","sys.dontAllow":"No permitir","viewer.select":"Marcar para eliminar","viewer.deselect":"Desmarcar","viewer.loadHD":"☁️ Cargar HD (iCloud)","viewer.downloading":"Cargando desde tu iCloud…","viewer.zoomHint":"Doble toque para zoom · arrastra","keeperGuard":"Debe quedar una foto por grupo (bloqueado)"}
+};
+const LANG_NAMES = {"zh-Hans":"简体中文","zh-Hant":"繁體中文","en":"English","es":"Español"};
+let langPref = "";              // "" = 跟随系统
+function curLang(){ return langPref || "zh-Hans"; }
+function t(k,...a){ let s=(I18N[curLang()]&&I18N[curLang()][k])||I18N["en"][k]||k;
+  a.forEach((v,i)=>s=s.replace("{"+i+"}",v)); return s; }
+function applyLang(){ document.querySelectorAll("[data-i]").forEach(el=>el.textContent=t(el.dataset.i));
+  renderLangList(); renderPreview(); updateCleanBtn(); renderSubUI(); }
+
+/* ============ 状态（镜像 AppState） ============ */
+let isPro=false, autoClean=false;
+const GB=1024**3, MB=1024**2;
+const state={
+  junk:128*MB,
+  groups:[ // first = keeper(最高清，置灰锁定)
+    {similar:false,emojis:["🌅","🌅","🌅"],hues:[16,18,15],sizes:[4.2,4.2,4.1]},
+    {similar:false,emojis:["🐱","🐱"],hues:[210,212],sizes:[3.1,3.1]},
+    {similar:true, emojis:["🏔️","🏔️","🏔️","🏔️"],hues:[150,152,148,155],sizes:[5.0,4.9,5.1,4.8]},
+  ],
+  shots:[{emoji:"💬",hue:200,size:1.8},{emoji:"🗺️",hue:230,size:1.8},
+         {emoji:"☁️",hue:215,size:1.8,cloud:true},   // iCloud 仅云端：占位+不可选，可在大图载入高清
+         {emoji:"📊",hue:260,size:1.8},{emoji:"🛒",hue:290,size:1.8}],
+  videos:[{emoji:"🎬",hue:280,size:420,dur:"2:14"}],
+  icloudSkipped:1,
+  sel:new Set(),
+};
+const fmt=b=>b>=GB?(b/GB).toFixed(1)+" GB":Math.round(b/MB)+" MB";
+function itemSize(id){const[k,a,b]=id.match(/^([gsv])(\d+)(?:-(\d+))?$/).slice(1);
+  if(k==="g")return state.groups[a].sizes[b]*MB;
+  if(k==="s")return state.shots[a].size*MB; return state.videos[a].size*MB;}
+function selectedBytes(){let s=state.junk;state.sel.forEach(id=>s+=itemSize(id));return s;}
+function photoCount(){return state.sel.size;}
+
+/* ===== 勾选守卫（镜像 toggleAssetSelection：每组必留一张）===== */
+function toggleSel(id){
+  const m=id.match(/^g(\d+)-(\d+)$/);
+  if(state.sel.has(id)){state.sel.delete(id);}
+  else{
+    if(m){const g=state.groups[+m[1]];
+      const unsel=g.emojis.filter((_,i)=>!state.sel.has(`g${m[1]}-${i}`)).length;
+      if(unsel<=1){showToast(t("keeperGuard"));return;}}
+    state.sel.add(id);
+  }
+  renderPreview();updateCleanBtn();
+}
+function allRedundantSelected(){
+  const gs=visibleGroups();if(!gs.length)return false;
+  return gs.every(({g,gi})=>g.emojis.every((_,i)=>i===0||state.sel.has(`g${gi}-${i}`)));
+}
+function visibleGroups(){return state.groups.map((g,gi)=>({g,gi}))
+  .filter(({g})=>!g.similar||isPro);}  // 相似组=深度扫描结果，仅 Pro 可见
+function selectAllToggle(){
+  if(!isPro){openSheet('paywall');return;}
+  if(allRedundantSelected()){ // 取消勾选
+    visibleGroups().forEach(({g,gi})=>g.emojis.forEach((_,i)=>state.sel.delete(`g${gi}-${i}`)));
+  }else{
+    visibleGroups().forEach(({g,gi})=>g.emojis.forEach((_,i)=>{ if(i>0)state.sel.add(`g${gi}-${i}`);}));
+  }
+  renderPreview();updateCleanBtn();
+}
+
+/* ============ 渲染 ============ */
+function thumbHTML(id,item,opts={}){
+  const sel=state.sel.has(id);
+  const cls=["thumb",sel?"sel":"",opts.keeper?"keeper":"",item.cloud?"cloud":""].join(" ");
+  const grad=`linear-gradient(135deg,hsl(${item.hue} 35% 30%),hsl(${item.hue+40} 45% 18%))`;
+  const events=`onclick="onThumbTap('${id}',${!!opts.keeper},${!!item.cloud})" `+
+    `onpointerdown="lpStart('${id}')" onpointerup="lpEnd()" onpointerleave="lpEnd()"`;
+  return `<div class="${cls}" ${events} style="background:${item.cloud?'var(--card)':grad}">
+    <div class="ph">${item.cloud&&!item.loaded?"☁️":item.emoji}</div>
+    ${opts.keeper?`<span class="keep-tag">${t("preview.keep")}</span>`:`<span class="chk">✓</span>`}
+    ${opts.dur?`<span class="dur-tag">▶ ${opts.dur}</span>`:""}</div>`;
+}
+function onThumbTap(id,keeper,cloud){
+  if(window._lpFired){window._lpFired=false;return;}
+  if(keeper||cloud)return;            // 保留项/不可见照片：不可勾选
+  toggleSel(id);
+}
+function renderPreview(){
+  document.getElementById("dupGroups").innerHTML=visibleGroups().map(({g,gi})=>{
+    const wasted=g.sizes.slice(1).reduce((a,b)=>a+b,0).toFixed(1)+" MB";
+    const thumbs=g.emojis.map((e,i)=>thumbHTML(`g${gi}-${i}`,{emoji:e,hue:g.hues[i]},{keeper:i===0})).join("");
+    return `<div class="group-meta"><span>${t(g.similar?"preview.similarGroup":"preview.dupGroup",g.emojis.length)}</span><b>${wasted}</b></div>
+      <div class="thumb-row">${thumbs}</div>`;}).join("");
+  document.getElementById("shotGrid").innerHTML=state.shots.map((s,i)=>thumbHTML(`s${i}`,s)).join("");
+  document.getElementById("shotCount").textContent=state.shots.length;
+  document.getElementById("videoGrid").innerHTML=state.videos.map((v,i)=>thumbHTML(`v${i}`,v,{dur:v.dur})).join("");
+  document.getElementById("selAllBtn").textContent=
+    !isPro?t("preview.selectAll.pro"):(allRedundantSelected()?t("preview.deselectAll"):t("preview.selectAll"));
+  document.getElementById("deepHint").style.display=isPro?"none":"block";
+  const icn=document.getElementById("icloudNote");
+  icn.style.display=state.icloudSkipped>0?"block":"none";
+  icn.querySelector("span").textContent=t("preview.icloudSkipped",state.icloudSkipped);
+}
+function updateCleanBtn(){
+  const b=document.getElementById("cleanBtn"),bytes=selectedBytes();
+  b.textContent=t("preview.clean",fmt(bytes)); b.disabled=bytes<=0;
+}
+function renderLangList(){
+  const codes=["",...Object.keys(I18N)];
+  document.getElementById("langList").innerHTML=codes.map(c=>{
+    const name=c===""?t("settings.language.system"):LANG_NAMES[c];
+    return `<div class="lang-row" onclick="setLang('${c}')"><span>${name}</span>${c===langPref?'<span class="tick">✓</span>':""}</div>`;
+  }).join("");
+}
+function renderSubUI(){
+  document.getElementById("subStatus").textContent=isPro?t("settings.status.active"):t("settings.status.free");
+  document.getElementById("subStatus").style.color=isPro?"var(--accent)":"var(--t2)";
+  document.getElementById("manageBtn").textContent=isPro?t("settings.manage"):t("settings.upgrade");
+}
+
+/* ============ 流程 ============ */
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");}
+function goHome(){state.sel.clear();show("s-home");}
+function startScan(){
+  show("s-scan");
+  const ring=document.getElementById("scanRing"),pct=document.getElementById("scanPct");
+  const C=439.8;let p=0;
+  const timer=setInterval(()=>{
+    p=Math.min(100,p+2+Math.random()*2.5);
+    ring.style.strokeDashoffset=C*(1-p/100);pct.textContent=Math.floor(p)+"%";
+    if(p>=100){clearInterval(timer);setTimeout(()=>{
+      state.sel.clear();
+      if(isPro){ // Pro：默认勾选精确重复组的冗余项（批量能力）
+        state.groups.forEach((g,gi)=>{if(!g.similar)g.emojis.forEach((_,i)=>{if(i>0)state.sel.add(`g${gi}-${i}`);});});
+      }
+      renderPreview();updateCleanBtn();show("s-preview");},350);}
+  },55);
+}
+/* 单次确认：含照片→系统框（Apple 强制，批量一次）；仅缓存→自家弹窗 */
+function tryClean(){
+  if(photoCount()>0){
+    document.getElementById("sysTi").textContent=t("sys.deleteTitle",photoCount());
+    document.getElementById("sysAlert").classList.add("open");
+  }else{
+    document.getElementById("ownMsg").textContent=t("confirm.message",0,fmt(state.junk));
+    document.getElementById("ownAlert").classList.add("open");
+  }
+}
+function hideSys(){document.getElementById("sysAlert").classList.remove("open");}
+function hideOwn(){document.getElementById("ownAlert").classList.remove("open");}
+function confirmSysDelete(){hideSys();doClean();}
+function confirmOwnClean(){hideOwn();doClean();}
+function doClean(){
+  const freed=fmt(selectedBytes());show("s-cleaning");
+  setTimeout(()=>{document.getElementById("freedTxt").textContent=t("result.freed",freed);
+    show("s-done");state.sel.clear();state.junk=0;},1500);
+}
+
+/* ============ 大图查看器：长按进入，双击缩放/拖移，iCloud 载入高清 ============ */
+let lpTimer=null;window._lpFired=false;let viewerId=null,vZoom=1,vOff={x:0,y:0},vDrag=null;
+function lpStart(id){lpTimer=setTimeout(()=>{window._lpFired=true;openViewer(id);},350);}
+function lpEnd(){clearTimeout(lpTimer);}
+function viewerItem(id){const[k,a,b]=id.match(/^([gsv])(\d+)(?:-(\d+))?$/).slice(1);
+  if(k==="g")return{emoji:state.groups[a].emojis[b],keeper:+b===0,cloud:false};
+  if(k==="s")return{...state.shots[a],keeper:false};return{...state.videos[a],keeper:false};}
+function openViewer(id){
+  viewerId=id;vZoom=1;vOff={x:0,y:0};applyV();
+  document.getElementById("viewer").classList.add("open");renderViewerFoot();
+  const it=viewerItem(id);
+  document.getElementById("vPic").textContent=(it.cloud&&!it.loaded)?"☁️":it.emoji;
+}
+function closeViewer(){document.getElementById("viewer").classList.remove("open");viewerId=null;}
+function renderViewerFoot(){
+  const it=viewerItem(viewerId);const sel=state.sel.has(viewerId);
+  let html=`<div class="caption">${t("viewer.zoomHint")}</div>`;
+  if(it.cloud&&!it.loaded)
+    html+=`<button class="hd-btn" onclick="loadHD()">${t("viewer.loadHD")}</button><div class="progress" id="hdProg" style="display:none"><i></i></div>`;
+  if(it.keeper)
+    html+=`<span class="keep-tag" style="position:static;font-size:12px;padding:6px 14px">${t("preview.keep")}</span>`;
+  else if(!(it.cloud&&!it.loaded))
+    html+=`<button class="vbtn" style="background:${sel?"var(--accent)":"var(--card)"};color:${sel?"#000":"var(--t1)"}"
+      onclick="toggleSel(viewerId);renderViewerFoot()">${sel?"✓ "+t("viewer.deselect"):t("viewer.select")}</button>`;
+  document.getElementById("vFoot").innerHTML=html;
+}
+function loadHD(){ // 用户主动、单张、仅下行——全 App 唯一联网路径
+  const prog=document.getElementById("hdProg");prog.style.display="block";let p=0;
+  const timer=setInterval(()=>{p+=8+Math.random()*10;prog.firstElementChild.style.width=Math.min(100,p)+"%";
+    if(p>=100){clearInterval(timer);
+      const[,a]=viewerId.match(/^s(\d+)/);state.shots[a].loaded=true;state.shots[a].emoji="🌄";state.shots[a].cloud=false;
+      document.getElementById("vPic").textContent="🌄";renderViewerFoot();renderPreview();}
+  },120);
+}
+function applyV(){document.getElementById("vPic").style.transform=
+  `translate(${vOff.x}px,${vOff.y}px) scale(${vZoom})`;}
+const stage=document.getElementById("vStage");
+stage.addEventListener("dblclick",()=>{vZoom=vZoom>1?1:2.5;if(vZoom===1)vOff={x:0,y:0};applyV();});
+stage.addEventListener("pointerdown",e=>{if(vZoom>1)vDrag={x:e.clientX-vOff.x,y:e.clientY-vOff.y};});
+stage.addEventListener("pointermove",e=>{if(vDrag){vOff={x:e.clientX-vDrag.x,y:e.clientY-vDrag.y};applyV();}});
+stage.addEventListener("pointerup",()=>vDrag=null);
+
+/* ============ 订阅 / 设置 ============ */
+function openSheet(n){document.getElementById("mask").classList.add("open");
+  document.getElementById("sheet-"+n).classList.add("open");}
+function closeSheets(){document.getElementById("mask").classList.remove("open");
+  document.querySelectorAll(".sheet").forEach(s=>s.classList.remove("open"));}
+function subscribe(){
+  isPro=true;document.body.classList.add("is-pro");
+  document.getElementById("upgradeEntry").style.display="none";closeSheets();
+  showToast("✓ Pro 已激活 · 3 天试用开始（演示）");
+  // 解锁批量：补上默认勾选 + 显示相似组
+  state.groups.forEach((g,gi)=>{if(!g.similar)g.emojis.forEach((_,i)=>{if(i>0)state.sel.add(`g${gi}-${i}`);});});
+  renderPreview();updateCleanBtn();renderSubUI();
+}
+function manageSub(){isPro?showToast("（演示）打开系统订阅管理面板"):openSheet('paywall');}
+function toggleAuto(){
+  if(!isPro){closeSheets();setTimeout(()=>openSheet('paywall'),250);return;}
+  autoClean=!autoClean;document.getElementById("autoSwitch").classList.toggle("on",autoClean);
+}
+function setLang(c){langPref=c;applyLang();}
+let toastTimer;
+function showToast(m){const el=document.getElementById("toast");el.textContent=m;
+  el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2200);}
+
+applyLang();
+</script>
+</body>
+</html>

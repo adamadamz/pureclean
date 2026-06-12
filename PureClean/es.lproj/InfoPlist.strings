@@ -1,0 +1,3 @@
+/* Español: nombre en pantalla de inicio */
+"CFBundleDisplayName" = "PureClean";
+"NSPhotoLibraryUsageDescription" = "PureClean escanea tu fototeca solo en este dispositivo para encontrar duplicados y capturas. Nada sale jamás de tu teléfono.";

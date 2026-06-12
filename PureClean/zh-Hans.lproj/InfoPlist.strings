@@ -1,0 +1,3 @@
+/* 简体中文：桌面显示「一扫净」 */
+"CFBundleDisplayName" = "一扫净";
+"NSPhotoLibraryUsageDescription" = "一扫净仅在本机扫描照片以识别重复项与截图，任何数据都不会离开您的手机。";
